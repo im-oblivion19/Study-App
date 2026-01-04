@@ -126,8 +126,8 @@ def generate_study_material(text: str) -> AIResult:
 # Streamlit UI
 # ----------------------------
 st.set_page_config(page_title="StudyPixel", layout="wide")
-st.title("📄➡️🧠 StudyPixel")
-st.caption("Upload a PDF and instantly get a summary, flashcards, and a quiz!")
+st.title("StudyPixel📃➡️🧠\n Upload a PDF and instantly get a summary, flashcards, and a quiz!")
+
 
 with st.sidebar:
     st.header("Upload")
@@ -135,34 +135,21 @@ with st.sidebar:
     st.divider()
     st.caption("Tip: If the PDF is scanned images, this won't extract text well (needs OCR).")
 
-if uploaded:
-    extracted_text = extract_text_from_pdf(uploaded)
-
-    if st.button("Generate"):
-        st.session_state["ai_result"] = generate_study_material(extracted_text)
-if "ai_result" in st.session_state:
-    result = st.session_state["ai_result"]
-
-    st.subheader("Summary")
-    st.write(result.summary)
-
-    st.subheader("Flashcards")
-    for fc in result.flashcards:
-        with st.expander(fc.question):
-            st.write(fc.answer)
-
-    st.subheader("Quiz")
-    for i, q in enumerate(result.quiz):
-        st.radio(
-            q.question,
-            q.options,
-            key=f"quiz_{i}"
-        )
-
-
+# ----------------------------
+# Session state initialization
+# ----------------------------
 if "ai_result" not in st.session_state:
     st.session_state.ai_result = None
+if "pdf_text" not in st.session_state:
+    st.session_state.pdf_text = None
+if "quiz_answers" not in st.session_state:
+    st.session_state.quiz_answers = None
+if "quiz_submitted" not in st.session_state:
+    st.session_state.quiz_submitted = False
 
+# ----------------------------
+# PDF extraction (do once)
+# ----------------------------
 if uploaded:
     st.subheader("1) Extracted Text Preview")
     with st.spinner("Extracting text from PDF..."):
@@ -172,21 +159,31 @@ if uploaded:
         st.error("No text found. This PDF might be scanned images. You'll need OCR for that.")
         st.stop()
 
+    st.session_state.pdf_text = pdf_text
     st.text_area("Extracted text (preview)", pdf_text[:4000], height=220)
 
+    # ----------------------------
+    # Generate (single source of truth)
+    # ----------------------------
     st.subheader("2) Generate Study Materials")
     colA, colB = st.columns([1, 2])
     with colA:
         if st.button("Generate Summary + Flashcards + Quiz", type="primary"):
             with st.spinner("Calling the AI..."):
-                safe_text = chunk_text(pdf_text, max_chars=12000)
+                safe_text = chunk_text(st.session_state.pdf_text, max_chars=12000)
                 try:
                     st.session_state.ai_result = generate_study_material(safe_text)
                     st.success("Done!")
+                    # Reset quiz state for new results
+                    st.session_state.quiz_answers = [None] * len(st.session_state.ai_result.quiz)
+                    st.session_state.quiz_submitted = False
                 except Exception as e:
                     st.session_state.ai_result = None
                     st.error(f"Failed to generate. Error: {e}")
 
+# ----------------------------
+# Render results (only if exists)
+# ----------------------------
 if st.session_state.ai_result:
     result: AIResult = st.session_state.ai_result
 
@@ -202,19 +199,23 @@ if st.session_state.ai_result:
     st.subheader("📝 Quiz")
     st.caption("Choose the appropriate answer for each question and hit Submit to see your score. Good luck!")
 
-    # Store user answers in session state so UI doesn't reset on rerun
-    if "quiz_answers" not in st.session_state:
+    # Ensure quiz state is initialized (covers refresh/rerun cases)
+    if st.session_state.quiz_answers is None or len(st.session_state.quiz_answers) != len(result.quiz):
         st.session_state.quiz_answers = [None] * len(result.quiz)
-    if "quiz_submitted" not in st.session_state:
         st.session_state.quiz_submitted = False
 
     for qi, q in enumerate(result.quiz):
         st.markdown(f"**Q{qi+1}. {q.question}**")
+
+        # IMPORTANT: don't default to 0, because that makes it look like option 1 is "always chosen"
+        current = st.session_state.quiz_answers[qi]
+        index = 0 if current is None else current
+
         choice = st.radio(
             label=f"q_{qi}",
             options=list(range(4)),
             format_func=lambda idx: q.options[idx],
-            index=st.session_state.quiz_answers[qi] if st.session_state.quiz_answers[qi] is not None else 0,
+            index=index,
             key=f"radio_{qi}",
         )
         st.session_state.quiz_answers[qi] = choice
@@ -234,7 +235,12 @@ if st.session_state.ai_result:
             for qi, q in enumerate(result.quiz):
                 user_idx = st.session_state.quiz_answers[qi]
                 st.write(f"**Q{qi+1}. {q.question}**")
-                st.write(f"Your answer: {q.options[user_idx]}")
+
+                if user_idx is None:
+                    st.write("Your answer: (no answer selected)")
+                else:
+                    st.write(f"Your answer: {q.options[user_idx]}")
+
                 st.write(f"Correct answer: {q.options[q.correct_index]}")
                 st.divider()
 else:
