@@ -126,7 +126,8 @@ def generate_study_material(text: str) -> AIResult:
 # Streamlit UI
 # ----------------------------
 st.set_page_config(page_title="StudyPixel", layout="wide")
-st.title("📄➡️🧠 StudyPixel: get summary, flashcards and a quiz in seconds! ")
+st.title("📄➡️🧠 StudyPixel")
+st.caption("Upload a PDF and instantly get a summary, flashcards, and a quiz!")
 
 with st.sidebar:
     st.header("Upload")
@@ -134,8 +135,8 @@ with st.sidebar:
     st.divider()
     st.caption("Tip: If the PDF is scanned images, this won't extract text well (needs OCR).")
 
-if uploaded_file:
-    extracted_text = extract_text_from_pdf(uploaded_file)
+if uploaded:
+    extracted_text = extract_text_from_pdf(uploaded)
 
     if st.button("Generate"):
         st.session_state["ai_result"] = generate_study_material(extracted_text)
@@ -198,8 +199,8 @@ if st.session_state.ai_result:
         with st.expander(f"Flashcard {i}: {fc.question}"):
             st.write(fc.answer)
 
-    st.subheader("📝 Quiz (5 Questions)")
-    st.caption("Choose answers and hit Submit to see your score.")
+    st.subheader("📝 Quiz")
+    st.caption("Choose the appropriate answer for each question and hit Submit to see your score. Good luck!")
 
     # Store user answers in session state so UI doesn't reset on rerun
     if "quiz_answers" not in st.session_state:
