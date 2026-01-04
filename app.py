@@ -23,7 +23,7 @@ class QuizQuestion(BaseModel):
 class AIResult(BaseModel):
     summary: str
     flashcards: List[Flashcard] = Field(..., min_items=10, max_items=10)
-    quiz: List[QuizQuestion] = Field(..., min_items=5, max_items=5)
+    quiz: List[QuizQuestion] = Field(..., min_items=10, max_items=10)
 
 # ----------------------------
 # Helpers
@@ -66,7 +66,7 @@ def generate_study_material(text: str) -> AIResult:
         "You are a study assistant. Given extracted text from a PDF, you must produce:\n"
         "1) A concise but high-signal summary.\n"
         "2) Exactly 10 flashcards (question/answer).\n"
-        "3) Exactly 5 multiple-choice quiz questions with exactly 4 options each.\n"
+        "3) Exactly 10 multiple-choice quiz questions with exactly 4 options each.\n"
         "Return ONLY valid JSON. No markdown, no extra commentary.\n"
         "Quiz correct_index must be 0-3.\n"
         "Flashcards and quiz must be grounded in the provided text."
@@ -95,8 +95,8 @@ def generate_study_material(text: str) -> AIResult:
 # ----------------------------
 # Streamlit UI
 # ----------------------------
-st.set_page_config(page_title="PDF → Summary / Flashcards / Quiz", layout="wide")
-st.title("📄➡️🧠 PDF Study Helper (Streamlit + PyMuPDF + OpenAI)")
+st.set_page_config(page_title="StudyPixel", layout="wide")
+st.title("📄➡️🧠 StudyPixel: get summary, flashcards and a quiz in seconds! ")
 
 with st.sidebar:
     st.header("Upload")
