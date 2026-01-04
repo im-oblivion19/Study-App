@@ -64,11 +64,11 @@ def generate_study_material(text: str) -> AIResult:
 
     system = (
         "You are a study assistant. Given extracted text from a PDF, you must produce:\n"
-        "1) A concise but high-signal summary.\n"
+        "1) A concise but high-signal summary. It should contain all important keywords. \n"
         "2) Exactly 10 flashcards (question/answer).\n"
         "3) Exactly 10 multiple-choice quiz questions with exactly 4 options each.\n"
         "Return ONLY valid JSON. No markdown, no extra commentary.\n"
-        "Quiz correct_index must be 0-3.\n"
+        "Quiz correct_index must be 0-3. Make sure the correct index is a random number between 0 and 3 for each question\n"
         "Flashcards and quiz must be grounded in the provided text."
     )
 
