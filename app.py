@@ -56,11 +56,35 @@ def get_openai_client() -> OpenAI:
         )
     return OpenAI(api_key=key)
 
+import random
+
+def shuffle_quiz_in_place(ai_result, seed: int | None = None):
+    """
+    Randomizes answer option order for each quiz question while preserving correctness.
+    Works even if the model always puts the correct answer at options[0].
+    """
+    rng = random.Random(seed)
+
+    for q in ai_result.quiz:
+        # Save the correct answer text before shuffling
+        correct_text = q.options[q.correct_index]
+
+        # Shuffle a copy of options
+        shuffled = list(q.options)
+        rng.shuffle(shuffled)
+
+        # Update question options + correct index
+        q.options = shuffled
+        q.correct_index = shuffled.index(correct_text)
+
+    return ai_result
+
+
 def generate_study_material(text: str) -> AIResult:
     """
     Calls OpenAI and forces a strict JSON output compatible with AIResult schema.
     """
-    client = get_openai_client()
+    client = get_openai_client()    
 
     system = (
         "You are a study assistant. Given extracted text from a PDF, you must produce:\n"
@@ -90,7 +114,13 @@ def generate_study_material(text: str) -> AIResult:
 
     raw = resp.choices[0].message.content
     data = json.loads(raw)
-    return AIResult.model_validate(data)
+
+    result = AIResult.model_validate(data)
+    result = shuffle_quiz_in_place(result)
+
+    return result
+
+
 
 # ----------------------------
 # Streamlit UI
@@ -103,6 +133,31 @@ with st.sidebar:
     uploaded = st.file_uploader("Upload a PDF", type=["pdf"])
     st.divider()
     st.caption("Tip: If the PDF is scanned images, this won't extract text well (needs OCR).")
+
+if uploaded_file:
+    extracted_text = extract_text_from_pdf(uploaded_file)
+
+    if st.button("Generate"):
+        st.session_state["ai_result"] = generate_study_material(extracted_text)
+if "ai_result" in st.session_state:
+    result = st.session_state["ai_result"]
+
+    st.subheader("Summary")
+    st.write(result.summary)
+
+    st.subheader("Flashcards")
+    for fc in result.flashcards:
+        with st.expander(fc.question):
+            st.write(fc.answer)
+
+    st.subheader("Quiz")
+    for i, q in enumerate(result.quiz):
+        st.radio(
+            q.question,
+            q.options,
+            key=f"quiz_{i}"
+        )
+
 
 if "ai_result" not in st.session_state:
     st.session_state.ai_result = None
