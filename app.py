@@ -212,7 +212,7 @@ if st.session_state.ai_result:
         index = 0 if current is None else current
 
         choice = st.radio(
-            label=f"q_{qi}",
+            label="",
             options=list(range(4)),
             format_func=lambda idx: q.options[idx],
             index=index,
