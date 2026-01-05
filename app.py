@@ -100,7 +100,7 @@ def generate_study_material(text: str) -> AIResult:
 
     # Choose a good general model name; you can change later.
     # If your account uses a different model, update it here.
-    model_name = "gpt-4.1-mini"
+    model_name = "gpt-5.2"
 
     resp = client.chat.completions.create(
         model=model_name,
@@ -207,7 +207,7 @@ if st.session_state.ai_result:
     
     for qi, q in enumerate(result.quiz):
         st.markdown(
-            f"<div style='margin-bottom: -10px'><strong>Q{qi+1}. {q.question}</strong></div>",
+            f"<div style='margin-bottom: 14px'><strong>Q{qi+1}. {q.question}</strong></div>",
             unsafe_allow_html=True
         )
 
