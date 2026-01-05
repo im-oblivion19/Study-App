@@ -204,12 +204,15 @@ if st.session_state.ai_result:
         st.session_state.quiz_answers = [None] * len(result.quiz)
         st.session_state.quiz_submitted = False
 
+    
     for qi, q in enumerate(result.quiz):
-        st.markdown(f"**Q{qi+1}. {q.question}**")
+        st.markdown(
+            f"<div style='margin-bottom: -10px'><strong>Q{qi+1}. {q.question}</strong></div>",
+            unsafe_allow_html=True
+        )
 
-        # IMPORTANT: don't default to 0, because that makes it look like option 1 is "always chosen"
         current = st.session_state.quiz_answers[qi]
-        index = 0 if current is None else current
+        index = current if current is not None else None
 
         choice = st.radio(
             label="",
@@ -217,8 +220,14 @@ if st.session_state.ai_result:
             format_func=lambda idx: q.options[idx],
             index=index,
             key=f"radio_{qi}",
+            label_visibility="collapsed",
         )
         st.session_state.quiz_answers[qi] = choice
+
+        # spacing BETWEEN questions
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.divider()
+
 
     if st.button("Submit Quiz"):
         st.session_state.quiz_submitted = True
